@@ -197,6 +197,59 @@
             font-size: 0.85rem;
             margin-top: 1.5rem;
         }
+
+        .install {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .install h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 3rem;
+            letter-spacing: -0.02em;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .step {
+            display: flex;
+            gap: 1.2rem;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .step p {
+            color: #86868b;
+            font-size: 0.95rem;
+            margin-top: 0.3rem;
+        }
+
+        .step code {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -232,6 +285,33 @@
             100% on-device processing
         </div>
         <p class="req">Requires macOS 14.0 or later</p>
+    </section>
+
+    <section class="install">
+        <h2>Installation</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div>
+                    <strong>Download & unzip</strong>
+                    <p>Download <code>nails.app.zip</code> from the releases page and move <code>nails.app</code> to your Applications folder.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div>
+                    <strong>Open the app</strong>
+                    <p>Double-click to open. macOS will show a warning because the app is not notarized.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div>
+                    <strong>Allow in System Settings</strong>
+                    <p>Open <strong>System Settings</strong> &rarr; <strong>Privacy &amp; Security</strong>, scroll down, and click <strong>Open Anyway</strong> to confirm your intent to open the app.</p>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section class="features">

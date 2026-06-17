@@ -27,7 +27,8 @@ Nails runs quietly in your menu bar, continuously analyzing your webcam feed usi
 
 1. Download the latest `nails.app.zip` from the [Releases](../../releases) page
 2. Unzip and move `nails.app` to your Applications folder
-3. Right-click the app and select **Open** (required on first launch since the app is not notarized)
+3. Double-click to open — macOS will show a warning because the app is not notarized
+4. Open **System Settings** → **Privacy & Security**, scroll down, and click **Open Anyway** to confirm your intent to open the app
 
 ### Build from Source
 
@@ -84,7 +85,7 @@ The camera runs at 15fps with frame processing at ~5fps to minimize CPU usage.
 
 - All video processing happens locally on your Mac using Apple's Vision framework
 - No images or data are transmitted over the network
-- Snapshots are stored in your app sandbox (`~/Library/Containers/eyalronel.nails/`)
+- Snapshots are stored in your app sandbox (`~/Library/Containers/<bundle-id>/`)
 - The camera is used non-exclusively so other apps can access it simultaneously
 
 ## License
