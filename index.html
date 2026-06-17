@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nails — Stop Biting Your Nails</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+            background: #0a0a0a;
+            color: #f5f5f7;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: radial-gradient(ellipse at 50% 0%, #1a1a2e 0%, #0a0a0a 70%);
+        }
+
+        .icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 26px;
+            background: linear-gradient(145deg, #1c1c1e, #2c2c2e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .icon svg {
+            width: 60px;
+            height: 60px;
+            fill: #f5f5f7;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 1rem;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: #86868b;
+            max-width: 600px;
+            margin-bottom: 3rem;
+            font-weight: 400;
+        }
+
+        .cta {
+            display: inline-flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.9rem 2rem;
+            border-radius: 980px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #2997ff;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #0077ed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #2997ff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .features {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+        }
+
+        .features h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 4rem;
+            letter-spacing: -0.02em;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .feature-card .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            color: #86868b;
+            font-size: 0.95rem;
+        }
+
+        .how-it-works {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 4rem 2rem 6rem;
+            text-align: center;
+        }
+
+        .how-it-works h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            letter-spacing: -0.02em;
+        }
+
+        .how-it-works p {
+            color: #86868b;
+            font-size: 1.1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .privacy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            padding: 0.7rem 1.4rem;
+            background: rgba(48, 209, 88, 0.1);
+            border: 1px solid rgba(48, 209, 88, 0.2);
+            border-radius: 980px;
+            color: #30d158;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #48484a;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        footer a {
+            color: #86868b;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #f5f5f7;
+        }
+
+        .req {
+            color: #86868b;
+            font-size: 0.85rem;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M15.5 8.5c0-1.58-1.06-2.73-2.5-3.23V4.5a1 1 0 1 0-2 0v.77C9.56 5.77 8.5 6.92 8.5 8.5c0 2.34 2.01 3.22 3.5 3.86 1.21.52 2 .93 2 1.64 0 .81-.73 1.5-1.5 1.5H11c-.77 0-1.5-.69-1.5-1.5a1 1 0 1 0-2 0c0 1.58 1.06 2.73 2.5 3.23v.77a1 1 0 1 0 2 0v-.77c1.44-.5 2.5-1.65 2.5-3.23 0-2.34-2.01-3.22-3.5-3.86-1.21-.52-2-.93-2-1.64 0-.81.73-1.5 1.5-1.5h.5c.77 0 1.5.69 1.5 1.5a1 1 0 1 0 2 0zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+            </svg>
+        </div>
+        <h1>Nails</h1>
+        <p class="tagline">A tiny macOS menu bar app that watches for nail biting and nudges you to stop.</p>
+        <div class="cta">
+            <a href="https://github.com/EyalRonel/nails/releases" class="btn btn-primary">Download</a>
+            <a href="https://github.com/EyalRonel/nails" class="btn btn-secondary">View Source</a>
+        </div>
+        <p class="req">Requires macOS 14.0 or later</p>
+    </section>
+
+    <section class="features">
+        <h2>Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">👁</div>
+                <h3>Real-Time Detection</h3>
+                <p>Uses Apple Vision framework to analyze hand pose and face landmarks, distinguishing nail biting from other hand-near-mouth gestures.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔔</div>
+                <h3>Multiple Alert Types</h3>
+                <p>Choose from sound alerts, a floating screen overlay, and system notifications. Each with its own configurable cooldown.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📸</div>
+                <h3>Snapshot Capture</h3>
+                <p>Optionally captures a photo on each detection so you can review them later and see your patterns.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Learns Over Time</h3>
+                <p>Review detection snapshots and flag false alarms. The app adjusts its sensitivity based on your feedback.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Privacy First</h3>
+                <p>All processing happens on-device. No data leaves your Mac. The camera is used non-exclusively so other apps work normally.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Lightweight</h3>
+                <p>Runs at ~5 FPS with minimal CPU usage. Auto-pauses when your screen is locked. Lives entirely in the menu bar.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-it-works">
+        <h2>How It Works</h2>
+        <p>Nails uses Apple's Vision framework to run hand pose estimation and face landmark detection on each video frame from your webcam.</p>
+        <p>It specifically looks for 1-3 fingertips near your mouth with fingers oriented toward it — the signature posture of nail biting. This avoids false alarms from resting your chin on your hand or covering your mouth.</p>
+        <p>When it catches you, it alerts you immediately so you can build awareness and break the habit.</p>
+        <div class="privacy-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+            100% on-device processing
+        </div>
+    </section>
+
+    <footer>
+        <p>Made by <a href="https://github.com/EyalRonel">Eyal Ronel</a>. Open source on <a href="https://github.com/EyalRonel/nails">GitHub</a>.</p>
+    </footer>
+</body>
+</html>

@@ -1,32 +1,56 @@
-//
-//  nailsApp.swift
-//  nails
-//
-//  Created by Eyal Ronel on 16/06/2026.
-//
-
+import AppKit
 import SwiftUI
-import SwiftData
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    weak var cameraManager: CameraManager?
+    private var eventMonitor: Any?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+            if event.clickCount == 2,
+               event.window?.className == "NSStatusBarWindow" {
+                self?.cameraManager?.toggleMonitoring()
+            }
+            return event
+        }
+    }
+}
 
 @main
 struct nailsApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var cameraManager = CameraManager()
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    init() {
+        NSApplication.shared.setActivationPolicy(.accessory)
+    }
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra {
+            ContentView(cameraManager: cameraManager)
+                .onAppear { appDelegate.cameraManager = cameraManager }
+        } label: {
+            Image(systemName: menuBarIcon)
         }
-        .modelContainer(sharedModelContainer)
+        .menuBarExtraStyle(.window)
+
+        Window("Settings", id: "settings") {
+            SettingsView(cameraManager: cameraManager)
+        }
+        .windowResizability(.contentSize)
+
+        Window("Review Detections", id: "review") {
+            SnapshotReviewView(store: cameraManager.detectionStore)
+        }
+    }
+
+    private var menuBarIcon: String {
+        if cameraManager.isDetecting {
+            return "exclamationmark.triangle.fill"
+        }
+        if cameraManager.isMonitoring {
+            return "eye.fill"
+        }
+        return "eye.slash"
     }
 }

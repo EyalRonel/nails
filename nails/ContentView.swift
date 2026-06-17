@@ -1,59 +1,108 @@
-//
-//  ContentView.swift
-//  nails
-//
-//  Created by Eyal Ronel on 16/06/2026.
-//
-
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @ObservedObject var cameraManager: CameraManager
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 8, height: 8)
+                Text(statusText)
+                    .font(.headline)
+                Spacer()
+                Toggle("", isOn: monitoringBinding)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .controlSize(.small)
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
+            .padding(.bottom, 4)
+
+            Divider()
+
+            HStack {
+                Image(systemName: "hand.raised.fingers.spread")
+                Text("Detections: \(cameraManager.detectionCount)")
             }
-        } detail: {
-            Text("Select an item")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .padding(.vertical, 4)
+
+            Divider()
+
+            MenuItemButton(title: "Settings", icon: "gear", shortcut: "⌘,") {
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+
+            MenuItemButton(title: "Review Detections", icon: "photo.stack") {
+                openWindow(id: "review")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+
+            Divider()
+
+            MenuItemButton(title: "Quit Nails", icon: "xmark.circle", shortcut: "⌘Q") {
+                NSApplication.shared.terminate(nil)
+            }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(width: 240)
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
+    private var monitoringBinding: Binding<Bool> {
+        Binding(
+            get: { cameraManager.isMonitoring },
+            set: { _ in cameraManager.toggleMonitoring() }
+        )
     }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
+    private var statusColor: Color {
+        if cameraManager.isDetecting { return .red }
+        if cameraManager.isMonitoring { return .green }
+        return .gray
+    }
+
+    private var statusText: String {
+        if cameraManager.isDetecting { return "Nail Biting Detected!" }
+        if cameraManager.isMonitoring { return "Monitoring" }
+        return "Paused"
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+struct MenuItemButton: View {
+    let title: String
+    let icon: String
+    var shortcut: String? = nil
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .frame(width: 16)
+                Text(title)
+                Spacer()
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(isHovered ? Color.accentColor : Color.clear)
+            )
+            .foregroundStyle(isHovered ? .white : .primary)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
 }
