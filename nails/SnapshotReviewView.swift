@@ -25,11 +25,20 @@ struct SnapshotReviewView: View {
             Divider()
 
             if store.records.isEmpty {
-                ContentUnavailableView(
-                    "No Detections Yet",
-                    systemImage: "photo.on.rectangle.angled",
-                    description: Text("Detections will appear here as they happen.")
-                )
+                VStack(spacing: 12) {
+                    Spacer()
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.tertiary)
+                    Text("No Detections Yet")
+                        .font(.title3.bold())
+                        .foregroundStyle(.secondary)
+                    Text("Detections will appear here as they happen.")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 16) {

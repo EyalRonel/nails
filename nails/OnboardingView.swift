@@ -25,10 +25,11 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
             Text("Welcome to Nails")
                 .font(.title.bold())
-            Text("Nails watches for nail biting using your webcam and nudges you to stop. All processing happens on-device — nothing leaves your Mac.")
+            Text("Nails watches for nail biting using your webcam and nudges you to stop.\nAll processing happens on-device — nothing leaves your Mac.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: 320)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 32)
             Spacer()
             Button("Get Started") { step = 1 }
                 .buttonStyle(.borderedProminent)
@@ -49,7 +50,8 @@ struct OnboardingView: View {
             Text(cameraDescription)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: 320)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 32)
             Spacer()
             cameraButton
             Spacer().frame(height: 24)
