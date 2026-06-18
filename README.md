@@ -17,7 +17,7 @@ Nails runs quietly in your menu bar, continuously analyzing your webcam feed usi
 
 ## Requirements
 
-- macOS 14.0 or later
+- macOS 15.0 (Sequoia) or later
 - A Mac with a built-in or connected webcam
 - Camera permission (the app will prompt on first launch)
 
