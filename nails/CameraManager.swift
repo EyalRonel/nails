@@ -7,11 +7,16 @@ import SwiftUI
 import UserNotifications
 import Vision
 
+enum CameraPermission: String {
+    case notDetermined, authorized, denied
+}
+
 class CameraManager: NSObject, ObservableObject {
     @Published var isMonitoring = false
     @Published var isDetecting = false
     @Published var detectionCount = 0
     @Published var lastSnapshotURL: URL?
+    @Published var cameraPermission: CameraPermission = .notDetermined
 
     @Published var takePictureOnDetection: Bool = true {
         didSet { UserDefaults.standard.set(takePictureOnDetection, forKey: "takePictureOnDetection") }
@@ -82,7 +87,10 @@ class CameraManager: NSObject, ObservableObject {
         dnc.addObserver(self, selector: #selector(screenDidUnlock), name: .init("com.apple.screenIsUnlocked"), object: nil)
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
-        startMonitoring()
+        updateCameraPermission()
+        if cameraPermission == .authorized && UserDefaults.standard.bool(forKey: "onboardingComplete") {
+            startMonitoring()
+        }
     }
 
     func toggleMonitoring() {
@@ -93,21 +101,38 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
 
+    func updateCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            cameraPermission = .authorized
+        case .notDetermined:
+            cameraPermission = .notDetermined
+        default:
+            cameraPermission = .denied
+        }
+    }
+
+    func requestCameraAccess() {
+        AVCaptureDevice.requestAccess(for: .video) { granted in
+            Task { @MainActor in
+                self.updateCameraPermission()
+                if granted {
+                    self.startMonitoring()
+                }
+            }
+        }
+    }
+
     func startMonitoring() {
         guard !isMonitoring else { return }
+        updateCameraPermission()
 
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        switch cameraPermission {
         case .authorized:
             setupAndStart()
         case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                if granted {
-                    Task { @MainActor in
-                        self.setupAndStart()
-                    }
-                }
-            }
-        default:
+            requestCameraAccess()
+        case .denied:
             break
         }
     }

@@ -20,6 +20,22 @@ struct ContentView: View {
             }
             .padding(.bottom, 4)
 
+            if cameraManager.cameraPermission == .denied {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.yellow)
+                    Text("Camera access denied")
+                        .font(.subheadline)
+                }
+                .padding(.vertical, 2)
+
+                Button("Open System Settings") {
+                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!)
+                }
+                .font(.subheadline)
+                .padding(.bottom, 2)
+            }
+
             Divider()
 
             HStack {
@@ -61,12 +77,14 @@ struct ContentView: View {
     }
 
     private var statusColor: Color {
+        if cameraManager.cameraPermission == .denied { return .yellow }
         if cameraManager.isDetecting { return .red }
         if cameraManager.isMonitoring { return .green }
         return .gray
     }
 
     private var statusText: String {
+        if cameraManager.cameraPermission == .denied { return "Camera Denied" }
         if cameraManager.isDetecting { return "Nail Biting Detected!" }
         if cameraManager.isMonitoring { return "Monitoring" }
         return "Paused"
