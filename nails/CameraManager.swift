@@ -3,9 +3,12 @@ import AVFoundation
 import Combine
 import CoreImage
 import CoreMedia
+import os
 import SwiftUI
 import UserNotifications
 import Vision
+
+private nonisolated let logger = Logger(subsystem: "com.nails", category: "detection")
 
 enum CameraPermission: String {
     case notDetermined, authorized, denied
@@ -39,7 +42,7 @@ class CameraManager: NSObject, ObservableObject {
     private let processingQueue = DispatchQueue(label: "com.nails.processing", qos: .userInitiated)
     private let ciContext = CIContext()
 
-    @Published var alertCooldown: Double = 10.0 {
+    @Published var alertCooldown: Double = 3.0 {
         didSet { UserDefaults.standard.set(alertCooldown, forKey: "alertCooldown") }
     }
     @Published var soundCooldown: Double = 3.0 {
@@ -51,14 +54,37 @@ class CameraManager: NSObject, ObservableObject {
     @Published var showScreenAlert: Bool = true {
         didSet { UserDefaults.standard.set(showScreenAlert, forKey: "showScreenAlert") }
     }
+    @Published var sensitivity: Double = 3.0 {
+        didSet {
+            UserDefaults.standard.set(sensitivity, forKey: "sensitivity")
+            logger.info("Sensitivity changed to \(self.sensitivity): proximityThreshold=\(String(format: "%.3f", self.proximityThreshold)), consecutiveFrames=\(self.detectionThreshold), orientationFactor=\(String(format: "%.2f", self.orientationFactor))")
+        }
+    }
 
     nonisolated(unsafe) private var lastAlertTime: Date = .distantPast
     nonisolated(unsafe) private var lastSoundTime: Date = .distantPast
     nonisolated(unsafe) private var consecutiveDetections = 0
     nonisolated(unsafe) private var lastProcessedTime: Date = .distantPast
     private var wasMonitoringBeforeLock = false
-    private let detectionThreshold = 3
-    private let defaultProximityThreshold = 0.08
+
+    nonisolated private var detectionThreshold: Int {
+        let s = UserDefaults.standard.double(forKey: "sensitivity")
+        let val = s > 0 ? s : 3.0
+        return max(1, Int(6 - val))
+    }
+
+    nonisolated private var proximityThreshold: Double {
+        let s = UserDefaults.standard.double(forKey: "sensitivity")
+        let val = s > 0 ? s : 3.0
+        return 0.04 + (val * 0.015)
+    }
+
+    nonisolated private var orientationFactor: Double {
+        let s = UserDefaults.standard.double(forKey: "sensitivity")
+        let val = s > 0 ? s : 3.0
+        return 0.95 - (val * 0.03)
+    }
+
     private let processInterval: TimeInterval = 0.2
 
     override init() {
@@ -67,10 +93,11 @@ class CameraManager: NSObject, ObservableObject {
             "takePictureOnDetection": true,
             "playSoundOnDetection": true,
             "selectedSound": "Funk",
-            "alertCooldown": 10.0,
+            "alertCooldown": 3.0,
             "soundCooldown": 3.0,
             "pauseWhenLocked": true,
             "showScreenAlert": true,
+            "sensitivity": 3.0,
         ])
         super.init()
 
@@ -81,6 +108,7 @@ class CameraManager: NSObject, ObservableObject {
         soundCooldown = defaults.double(forKey: "soundCooldown")
         pauseWhenLocked = defaults.bool(forKey: "pauseWhenLocked")
         showScreenAlert = defaults.bool(forKey: "showScreenAlert")
+        sensitivity = defaults.double(forKey: "sensitivity")
 
         let dnc = DistributedNotificationCenter.default()
         dnc.addObserver(self, selector: #selector(screenDidLock), name: .init("com.apple.screenIsLocked"), object: nil)
@@ -341,6 +369,11 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
               let face = faces.first,
               let landmarks = face.landmarks,
               let outerLips = landmarks.outerLips else {
+            if hands.isEmpty {
+                logger.debug("No hands detected")
+            } else {
+                logger.debug("No face/mouth detected")
+            }
             consecutiveDetections = 0
             Task { @MainActor in self.isDetecting = false }
             return
@@ -361,8 +394,11 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         my /= CGFloat(pointCount)
 
         let mouthPos = CGPoint(x: mx, y: my)
-        let proximityThreshold = UserDefaults.standard.object(forKey: "adaptiveProximityThreshold") as? Double
-            ?? defaultProximityThreshold
+        let adaptiveThreshold = UserDefaults.standard.object(forKey: "adaptiveProximityThreshold") as? Double
+        let proxThreshold = adaptiveThreshold ?? proximityThreshold
+        let orientFactor = orientationFactor
+
+        logger.debug("Frame: \(hands.count) hands, mouth=(\(String(format: "%.3f", mx)),\(String(format: "%.3f", my))), proxThreshold=\(String(format: "%.3f", proxThreshold)), orientFactor=\(String(format: "%.2f", orientFactor)), rects=\(rectangles.count)")
 
         let fingerJoints: [(
             tip: VNHumanHandPoseObservation.JointName,
@@ -395,6 +431,7 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                 if tipToPip < 0.07 { curledFingers += 1 }
             }
             let isGripping = totalChecked >= 3 && curledFingers >= 2
+            logger.debug("  Hand: curled=\(curledFingers)/\(totalChecked), gripping=\(isGripping)")
 
             // Wrist position: drinking = wrist roughly below mouth
             var isDrinkingPosture = false
@@ -430,7 +467,10 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                 if distToMouth < 0.2 { rectNearMouth = true; break }
             }
 
-            if isGripping || rectNearMouth || (isDrinkingPosture && isHoldingObject) { continue }
+            if isGripping || (rectNearMouth && isHoldingObject) || (isDrinkingPosture && isHoldingObject) {
+                logger.info("  Hand SKIPPED: grip=\(isGripping), rect+hold=\(rectNearMouth && isHoldingObject), drink+hold=\(isDrinkingPosture && isHoldingObject)")
+                continue
+            }
 
             var tipsNearMouth = 0
             var tipsPointingAtMouth = 0
@@ -445,15 +485,19 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                 let tipDist = hypot(tipPoint.location.x - mouthPos.x, tipPoint.location.y - mouthPos.y)
                 let dipDist = hypot(dipPoint.location.x - mouthPos.x, dipPoint.location.y - mouthPos.y)
 
-                if tipDist < proximityThreshold {
+                logger.debug("  Finger tip dist=\(String(format: "%.4f", tipDist)) dip dist=\(String(format: "%.4f", dipDist)) (threshold=\(String(format: "%.4f", proxThreshold)))")
+                if tipDist < proxThreshold {
                     tipsNearMouth += 1
                     handMinDist = min(handMinDist, tipDist)
-                    if tipDist < dipDist * 0.85 {
+                    let pointing = tipDist < dipDist * orientFactor
+                    if pointing {
                         tipsPointingAtMouth += 1
                     }
+                    logger.debug("    -> NEAR mouth, pointing=\(pointing)")
                 }
             }
 
+            logger.debug("  Result: tipsNear=\(tipsNearMouth), tipsPointing=\(tipsPointingAtMouth)")
             if tipsNearMouth >= 1 && tipsNearMouth <= 3 && tipsPointingAtMouth >= 1 {
                 detected = true
                 bestMinDist = handMinDist
@@ -465,6 +509,7 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         if detected {
             consecutiveDetections += 1
+            logger.info("DETECTED: consecutive=\(self.consecutiveDetections)/\(self.detectionThreshold), minDist=\(String(format: "%.4f", bestMinDist)), near=\(bestTipsNear), pointing=\(bestTipsPointing)")
 
             if consecutiveDetections >= detectionThreshold {
                 Task { @MainActor in self.isDetecting = true }

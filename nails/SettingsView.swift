@@ -7,26 +7,44 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var showClearConfirmation = false
 
+    private var sensitivityLabel: String {
+        switch Int(cameraManager.sensitivity) {
+        case 1: return "Very Low"
+        case 2: return "Low"
+        case 3: return "Medium"
+        case 4: return "High"
+        case 5: return "Very High"
+        default: return "Medium"
+        }
+    }
+
     var body: some View {
         Form {
-            Section("Cooldowns") {
+            Section("General") {
+                Toggle("Launch at Login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, newValue in
+                        do {
+                            if newValue {
+                                try SMAppService.mainApp.register()
+                            } else {
+                                try SMAppService.mainApp.unregister()
+                            }
+                        } catch {
+                            launchAtLogin = SMAppService.mainApp.status == .enabled
+                        }
+                    }
+                Toggle("Pause When Screen Is Locked", isOn: $cameraManager.pauseWhenLocked)
+            }
+
+            Section("Detection") {
                 HStack {
-                    Text("Notification & Picture")
+                    Text("Sensitivity")
                     Spacer()
-                    Slider(value: $cameraManager.alertCooldown, in: 1...60, step: 1)
+                    Slider(value: $cameraManager.sensitivity, in: 1...5, step: 1)
                         .frame(width: 160)
-                    Text("\(Int(cameraManager.alertCooldown))s")
-                        .monospacedDigit()
-                        .frame(width: 32, alignment: .trailing)
-                }
-                HStack {
-                    Text("Sound")
-                    Spacer()
-                    Slider(value: $cameraManager.soundCooldown, in: 1...30, step: 1)
-                        .frame(width: 160)
-                    Text("\(Int(cameraManager.soundCooldown))s")
-                        .monospacedDigit()
-                        .frame(width: 32, alignment: .trailing)
+                    Text(sensitivityLabel)
+                        .frame(width: 64, alignment: .trailing)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -50,20 +68,25 @@ struct SettingsView: View {
                 }
             }
 
-            Section("General") {
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, newValue in
-                        do {
-                            if newValue {
-                                try SMAppService.mainApp.register()
-                            } else {
-                                try SMAppService.mainApp.unregister()
-                            }
-                        } catch {
-                            launchAtLogin = SMAppService.mainApp.status == .enabled
-                        }
-                    }
-                Toggle("Pause When Screen Is Locked", isOn: $cameraManager.pauseWhenLocked)
+            Section("Cooldowns") {
+                HStack {
+                    Text("Notification & Picture")
+                    Spacer()
+                    Slider(value: $cameraManager.alertCooldown, in: 1...60, step: 1)
+                        .frame(width: 160)
+                    Text("\(Int(cameraManager.alertCooldown))s")
+                        .monospacedDigit()
+                        .frame(width: 32, alignment: .trailing)
+                }
+                HStack {
+                    Text("Sound")
+                    Spacer()
+                    Slider(value: $cameraManager.soundCooldown, in: 1...30, step: 1)
+                        .frame(width: 160)
+                    Text("\(Int(cameraManager.soundCooldown))s")
+                        .monospacedDigit()
+                        .frame(width: 32, alignment: .trailing)
+                }
             }
 
             Section("Data") {
@@ -92,6 +115,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        .frame(width: 420, height: 380)
+        .frame(width: 420, height: 440)
     }
 }
