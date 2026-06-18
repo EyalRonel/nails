@@ -381,9 +381,9 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         if detected {
             consecutiveDetections += 1
-            Task { @MainActor in self.isDetecting = true }
 
             if consecutiveDetections >= detectionThreshold {
+                Task { @MainActor in self.isDetecting = true }
                 let now = Date()
                 let defaults = UserDefaults.standard
 
