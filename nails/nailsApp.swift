@@ -28,11 +28,25 @@ struct nailsApp: App {
     var body: some Scene {
         MenuBarExtra {
             ContentView(cameraManager: cameraManager)
-                .onAppear { appDelegate.cameraManager = cameraManager }
+                .onAppear {
+                    appDelegate.cameraManager = cameraManager
+                    if !UserDefaults.standard.bool(forKey: "onboardingComplete") {
+                        DispatchQueue.main.async {
+                            NSApp.activate(ignoringOtherApps: true)
+                            self.openWindow(id: "onboarding")
+                        }
+                    }
+                }
         } label: {
             Image(systemName: menuBarIcon)
         }
         .menuBarExtraStyle(.window)
+
+        Window("Welcome to Nails", id: "onboarding") {
+            OnboardingView(cameraManager: cameraManager)
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
 
         Window("Settings", id: "settings") {
             SettingsView(cameraManager: cameraManager)
@@ -43,6 +57,8 @@ struct nailsApp: App {
             SnapshotReviewView(store: cameraManager.detectionStore)
         }
     }
+
+    @Environment(\.openWindow) private var openWindow
 
     private var menuBarIcon: String {
         if cameraManager.isDetecting {
