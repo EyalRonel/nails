@@ -295,17 +295,22 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         let handPoseRequest = VNDetectHumanHandPoseRequest()
         handPoseRequest.maximumHandCount = 2
         let faceLandmarksRequest = VNDetectFaceLandmarksRequest()
+        let rectangleRequest = VNDetectRectanglesRequest()
+        rectangleRequest.minimumSize = 0.05
+        rectangleRequest.maximumObservations = 4
+        rectangleRequest.minimumConfidence = 0.6
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
 
         do {
-            try handler.perform([handPoseRequest, faceLandmarksRequest])
+            try handler.perform([handPoseRequest, faceLandmarksRequest, rectangleRequest])
         } catch {
             return
         }
 
         let hands = handPoseRequest.results ?? []
         let faces = faceLandmarksRequest.results ?? []
+        let rectangles = rectangleRequest.results ?? []
 
         guard !hands.isEmpty,
               let face = faces.first,
@@ -334,12 +339,16 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         let proximityThreshold = UserDefaults.standard.object(forKey: "adaptiveProximityThreshold") as? Double
             ?? defaultProximityThreshold
 
-        let fingerJoints: [(tip: VNHumanHandPoseObservation.JointName, dip: VNHumanHandPoseObservation.JointName)] = [
-            (.thumbTip, .thumbIP),
-            (.indexTip, .indexDIP),
-            (.middleTip, .middleDIP),
-            (.ringTip, .ringDIP),
-            (.littleTip, .littleDIP),
+        let fingerJoints: [(
+            tip: VNHumanHandPoseObservation.JointName,
+            dip: VNHumanHandPoseObservation.JointName,
+            pip: VNHumanHandPoseObservation.JointName
+        )] = [
+            (.thumbTip, .thumbIP, .thumbMP),
+            (.indexTip, .indexDIP, .indexPIP),
+            (.middleTip, .middleDIP, .middlePIP),
+            (.ringTip, .ringDIP, .ringPIP),
+            (.littleTip, .littleDIP, .littlePIP),
         ]
 
         var detected = false
@@ -348,11 +357,61 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         var bestTipsPointing = 0
 
         for hand in hands {
+            // Grip detection: if fingers are curled, it's holding an object (cup, phone)
+            var curledFingers = 0
+            var totalChecked = 0
+            for (tip, _, pip) in fingerJoints {
+                guard let tipPt = try? hand.recognizedPoint(tip),
+                      let pipPt = try? hand.recognizedPoint(pip),
+                      tipPt.confidence > 0.3,
+                      pipPt.confidence > 0.3 else { continue }
+                totalChecked += 1
+                let tipToPip = hypot(tipPt.location.x - pipPt.location.x, tipPt.location.y - pipPt.location.y)
+                if tipToPip < 0.07 { curledFingers += 1 }
+            }
+            let isGripping = totalChecked >= 3 && curledFingers >= 2
+
+            // Wrist position: drinking = wrist roughly below mouth
+            var isDrinkingPosture = false
+            if let wrist = try? hand.recognizedPoint(.wrist), wrist.confidence > 0.3 {
+                let horizontalOffset = abs(wrist.location.x - mouthPos.x)
+                let verticalOffset = mouthPos.y - wrist.location.y
+                if horizontalOffset < 0.15 && verticalOffset > 0.03 {
+                    isDrinkingPosture = true
+                }
+            }
+
+            // Thumb-index spread: holding an object spreads them apart, nail biting pinches them
+            var isHoldingObject = false
+            if let thumb = try? hand.recognizedPoint(.thumbTip),
+               let index = try? hand.recognizedPoint(.indexTip),
+               let middle = try? hand.recognizedPoint(.middleTip),
+               thumb.confidence > 0.3, index.confidence > 0.3, middle.confidence > 0.3 {
+                let thumbIndexDist = hypot(thumb.location.x - index.location.x, thumb.location.y - index.location.y)
+                let indexMiddleDist = hypot(index.location.x - middle.location.x, index.location.y - middle.location.y)
+                // When gripping, thumb is far from index relative to index-middle gap
+                if thumbIndexDist > 0.06 && thumbIndexDist > indexMiddleDist * 2.5 {
+                    isHoldingObject = true
+                }
+            }
+
+            // Rectangle near mouth: phone or similar object held to face
+            var rectNearMouth = false
+            for rect in rectangles {
+                let bbox = rect.boundingBox
+                let rectCenterX = bbox.midX
+                let rectCenterY = bbox.midY
+                let distToMouth = hypot(rectCenterX - mouthPos.x, rectCenterY - mouthPos.y)
+                if distToMouth < 0.2 { rectNearMouth = true; break }
+            }
+
+            if isGripping || rectNearMouth || (isDrinkingPosture && isHoldingObject) { continue }
+
             var tipsNearMouth = 0
             var tipsPointingAtMouth = 0
             var handMinDist = Double.infinity
 
-            for (tip, dip) in fingerJoints {
+            for (tip, dip, _) in fingerJoints {
                 guard let tipPoint = try? hand.recognizedPoint(tip),
                       let dipPoint = try? hand.recognizedPoint(dip),
                       tipPoint.confidence > 0.3,
